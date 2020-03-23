@@ -6,27 +6,13 @@ Created on Mon Mar 16 13:53:05 2020
 """
 
 #%%
-# Window meta
+import shutil
+import os
 import tkinter as tk
 from tkinter import filedialog
 from tkinter import ttk
-import shutil
-import os
+from util import Utility
 
-class Utility:
-    @staticmethod
-    def save_data(data, data_path=r'./data.txt'):
-        assert isinstance(data, (list, tuple)), 'Invalid type of data'
-        with open(data_path, 'w') as streamer:
-            for (name, path) in data:
-                streamer.write('%s-!-%s\n' % (name, path))
-    
-    @staticmethod
-    def load_data(data_path=r'./data.txt'):
-        with open(data_path, 'r') as streamer:
-            data = streamer.read().splitlines()
-        return list(map(lambda s: s.split('-!-'), data))
-    
 class PathDialog(tk.Toplevel):
     def __init__(self, parent, backup_path='./savedata'):
         tk.Toplevel.__init__(self, parent)
@@ -157,7 +143,46 @@ class SettingDialog(tk.Toplevel):
     def clear(self):
         self.name_textbox.delete(0, 'end')
         self.path_textbox.delete(0, 'end')
+
+class DetailTable(ttk.Treeview):
+    def __init__(self, parent, columns):
+        ttk.Treeview.__init__(self, parent, columns=columns,
+                              show='headings', selectmode='browse')
+
+        self.column('Name', width=100)
+        self.column('Path', width=500)
+        self.heading('Name', text='Name')
+        self.heading('Path', text='Path')
+        self.bind('<<TreeviewSelect>>', self.on_select)
         
+        self.selected = (-1,)
+        
+        self.load()
+        
+    def load(self):
+        data = Utility.load_data()
+        for name, path in data:
+            self.insert('', 'end', values=(name, path))
+    
+    def save(self):
+        data = self.get_all_items()
+        Utility.save_data(data)
+    
+    def get_all_items(self):
+        indices = self.get_children()
+        return list(map(lambda i: self.item(i)['values'], indices))
+        
+    def on_select(self, event):
+        self.selected = event.widget.selection()
+    
+    def get_selected(self):
+        index = self.selected[0]
+        if self.exists(index):
+            name, path = self.item(index)['values']
+            return index, name, path
+        else:
+            return -1, '', ''
+
 class MainFrame(tk.Frame):
     def __init__(self, parent):
         tk.Frame.__init__(self, parent)
@@ -246,48 +271,3 @@ class MainFrame(tk.Frame):
                     shutil.copytree(src, r'%s/%s' % (dst, name))
         except AttributeError:
             pass
-        
-        
-class DetailTable(ttk.Treeview):
-    def __init__(self, parent, columns):
-        ttk.Treeview.__init__(self, parent, columns=columns,
-                              show='headings', selectmode='browse')
-
-        self.column('Name', width=100)
-        self.column('Path', width=500)
-        self.heading('Name', text='Name')
-        self.heading('Path', text='Path')
-        self.bind('<<TreeviewSelect>>', self.on_select)
-        
-        self.selected = (-1,)
-        
-        self.load()
-        
-    def load(self):
-        data = Utility.load_data()
-        for name, path in data:
-            self.insert('', 'end', values=(name, path))
-    
-    def save(self):
-        data = self.get_all_items()
-        Utility.save_data(data)
-    
-    def get_all_items(self):
-        indices = self.get_children()
-        return list(map(lambda i: self.item(i)['values'], indices))
-        
-    def on_select(self, event):
-        self.selected = event.widget.selection()
-    
-    def get_selected(self):
-        index = self.selected[0]
-        if self.exists(index):
-            name, path = self.item(index)['values']
-            return index, name, path
-        else:
-            return -1, '', ''
-#%%
-window = tk.Tk()
-window.title('Save Restorer')
-MainFrame(window).pack()
-window.mainloop()
