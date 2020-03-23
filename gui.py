@@ -232,6 +232,7 @@ class MainFrame(tk.Frame):
         self.progress_bar['value'] = 0
         self.progress_bar.pack(side=tk.TOP,
                                padx=5, pady=5)
+    
     def create_item(self):
         setting_dialog = SettingDialog(self)
         try:
@@ -266,6 +267,8 @@ class MainFrame(tk.Frame):
         path_dialog = PathDialog(self)
         try:
             dst = path_dialog.fetch()
+            if os.path.isdir(r'%s' % dst):
+                shutil.rmtree(r'%s' % dst)
             for name, src in Utility.load_data():
                 if not os.path.isdir(r'%s/%s' % (dst, name)):
                     shutil.copytree(src, r'%s/%s' % (dst, name))
